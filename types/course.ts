@@ -3,4 +3,5 @@ export interface Course {
     nombre: string
     correlativa: string | string[]
     origen: string
+    duracion: number
 }

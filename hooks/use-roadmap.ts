@@ -73,6 +73,7 @@ export function useRoadmap() {
             completed: completed.size,
             unlocked: COURSES.filter((c) => isUnlocked(c)).length,
             total: COURSES.length,
+            totalHours: COURSES.reduce((acc, course) => acc + course.duracion, 0),
         }
     }, [completed]) // isUnlocked is stable or should be inside memo if dependent
 

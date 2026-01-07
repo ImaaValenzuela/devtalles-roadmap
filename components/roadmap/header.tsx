@@ -5,6 +5,7 @@ interface HeaderProps {
         completed: number
         unlocked: number
         total: number
+        totalHours: number
     }
 }
 
@@ -30,6 +31,10 @@ export const Header: React.FC<HeaderProps> = ({ stats }) => {
                         <div className="text-center">
                             <p className="text-2xl font-bold text-muted-foreground">{stats.total}</p>
                             <p className="text-xs text-muted-foreground uppercase tracking-wider">Total</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-2xl font-bold text-muted-foreground">{stats.totalHours}h</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider">Carga Horaria</p>
                         </div>
                     </div>
                 </div>

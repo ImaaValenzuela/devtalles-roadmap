@@ -53,7 +53,9 @@ export const CourseNode: React.FC<CourseNodeProps> = ({
                         className={`w-3 h-3 rounded-full flex-shrink-0 ${colors.dot} ${!isLocked && isCompleted ? "ring-2 ring-offset-1 ring-green-400" : ""}`}
                     />
                     <div className="flex-1 overflow-hidden">
-                        <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest truncate">{course.codigo}</p>
+                        <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest truncate">
+                            {course.codigo} • {course.duracion}h
+                        </p>
                         <p
                             className={`font-medium text-sm leading-tight truncate ${!isLocked && isCompleted ? "text-primary" : "text-foreground"}`}
                         >
