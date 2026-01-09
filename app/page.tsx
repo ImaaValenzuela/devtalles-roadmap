@@ -7,11 +7,11 @@ import { CourseNode } from "@/components/roadmap/node"
 
 export default function RoadmapPage() {
   const {
-    completed,
+    courseStatus,
     hoveredCourse,
     setHoveredCourse,
     isUnlocked,
-    toggleCompletion,
+    cycleStatus,
     stats,
     roots,
     buildBranches,
@@ -29,10 +29,10 @@ export default function RoadmapPage() {
               <div key={root.codigo} className="flex flex-col gap-6">
                 <CourseNode
                   course={root}
-                  completed={completed}
+                  courseStatus={courseStatus}
                   hoveredCourse={hoveredCourse}
                   setHoveredCourse={setHoveredCourse}
-                  toggleCompletion={toggleCompletion}
+                  cycleStatus={cycleStatus}
                   isUnlocked={isUnlocked}
                   getMissingPrerequisites={getMissingPrerequisites}
                   buildBranches={buildBranches}

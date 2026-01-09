@@ -4,8 +4,11 @@ import { useState, useMemo, useEffect } from "react"
 import { Course } from "@/types/course"
 import { COURSES } from "@/constants/courses"
 
+export type CourseStatus = "in-progress" | "completed"
+
 export function useRoadmap() {
-    const [completed, setCompleted] = useState<Set<string>>(new Set())
+    // Store status as a map: courseCode -> status
+    const [courseStatus, setCourseStatus] = useState<Record<string, CourseStatus>>({})
     const [hoveredCourse, setHoveredCourse] = useState<string | null>(null)
     const [isLoaded, setIsLoaded] = useState(false)
 
@@ -17,7 +20,18 @@ export function useRoadmap() {
         const saved = localStorage.getItem("roadmap-progress")
         if (saved) {
             try {
-                setCompleted(new Set(JSON.parse(saved)))
+                const parsed = JSON.parse(saved)
+                if (Array.isArray(parsed)) {
+                    // Migrate old format (array of completed codes) to new format
+                    const newStatus: Record<string, CourseStatus> = {}
+                    parsed.forEach((code) => {
+                        newStatus[code] = "completed"
+                    })
+                    setCourseStatus(newStatus)
+                } else {
+                    // New format
+                    setCourseStatus(parsed)
+                }
             } catch (e) {
                 console.error("Failed to parse roadmap progress", e)
             }
@@ -27,16 +41,18 @@ export function useRoadmap() {
 
     useEffect(() => {
         if (isLoaded) {
-            localStorage.setItem("roadmap-progress", JSON.stringify(Array.from(completed)))
+            localStorage.setItem("roadmap-progress", JSON.stringify(courseStatus))
         }
-    }, [completed, isLoaded])
+    }, [courseStatus, isLoaded])
 
     const isUnlocked = (course: Course): boolean => {
         if (course.correlativa === "Ninguna") return true
         const prereqs = Array.isArray(course.correlativa) ? course.correlativa : [course.correlativa]
         return prereqs.every((prereq) => {
             const parent = courseMap[prereq]
-            return completed.has(prereq) && (parent ? isUnlocked(parent) : false)
+            // Unlocked if parent has ANY status (in-progress or completed)
+            // Recursive check: parent must also be unlocked
+            return courseStatus[prereq] !== undefined && (parent ? isUnlocked(parent) : false)
         })
     }
 
@@ -55,27 +71,34 @@ export function useRoadmap() {
         return descendants
     }
 
-    const toggleCompletion = (codigo: string) => {
-        const newCompleted = new Set(completed)
-        if (newCompleted.has(codigo)) {
-            newCompleted.delete(codigo)
-            // Cascading uncheck: remove all descendants
-            const descendants = getDescendants(codigo)
-            descendants.forEach((d) => newCompleted.delete(d))
-        } else {
-            newCompleted.add(codigo)
-        }
-        setCompleted(newCompleted)
+    const cycleStatus = (codigo: string) => {
+        setCourseStatus((prev) => {
+            const current = prev[codigo]
+            const next = { ...prev }
+
+            if (!current) {
+                next[codigo] = "in-progress"
+            } else if (current === "in-progress") {
+                next[codigo] = "completed"
+            } else {
+                delete next[codigo]
+                // Cascading removal for descendants if the node is reset
+                const descendants = getDescendants(codigo)
+                descendants.forEach((d) => delete next[d])
+            }
+            return next
+        })
     }
 
     const stats = useMemo(() => {
+        const completedCount = Object.values(courseStatus).filter(s => s === "completed").length
         return {
-            completed: completed.size,
+            completed: completedCount,
             unlocked: COURSES.filter((c) => isUnlocked(c)).length,
             total: COURSES.length,
             totalHours: COURSES.reduce((acc, course) => acc + course.duracion, 0),
         }
-    }, [completed]) // isUnlocked is stable or should be inside memo if dependent
+    }, [courseStatus])
 
     const buildTreeStructure = () => {
         const roots = COURSES.filter((c) => c.correlativa === "Ninguna")
@@ -96,21 +119,23 @@ export function useRoadmap() {
         const prereqs = Array.isArray(course.correlativa) ? course.correlativa : [course.correlativa]
         if (prereqs[0] === "Ninguna") return ""
 
-        const missing = prereqs.filter((p) => !completed.has(p))
+        // Missing if NOT present in status map
+        const missing = prereqs.filter((p) => !courseStatus[p])
         if (missing.length === 0) return ""
 
         return missing.map((p) => courseMap[p]?.codigo || p).join(", ")
     }
 
     return {
-        completed,
+        courseStatus,
         hoveredCourse,
         setHoveredCourse,
         isUnlocked,
-        toggleCompletion,
+        cycleStatus, // Renamed from toggleCompletion
         stats,
         roots,
         buildBranches,
         getMissingPrerequisites,
     }
 }
+
